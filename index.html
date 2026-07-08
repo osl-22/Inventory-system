@@ -284,8 +284,9 @@ select.fc {
      ============================== -->
 <header class="header">
   <h1 id="pgTitle">📦 Inventory</h1>
-  <!-- Real Google Sheets icon -->
-  <button class="hbtn" title="Open Google Sheet" onclick="openSheet()">
+  <!-- Export button: downloads the inventory as a spreadsheet file
+       directly to this phone — no Google account / sheet permission needed -->
+  <button class="hbtn" title="Export to Excel/Sheet" onclick="exportSheet()">
     <svg width="22" height="22" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
       <path fill="#0F9D58" d="M39.5 46h-31A2.5 2.5 0 0 1 6 43.5v-39A2.5 2.5 0 0 1 8.5 2H30l12 12v29.5A2.5 2.5 0 0 1 39.5 46z"/>
       <path fill="#B7E1CD" d="M30 2l12 12H30z"/>
@@ -584,7 +585,7 @@ var filtTxn       = [];
 var scanMode      = 'borrow';
 var txnType       = 'all';
 var curItem       = null;
-var sheetUrl      = '';
+
 var mainScanner   = null;
 var inlineScanner = null;
 var scanActive    = false;
@@ -720,7 +721,6 @@ window.onload = function() {
   showIabBannerIfNeeded();
   loadInv();
   loadTxns();
-  jsonpCall('getSheetUrl').then(function(u){ sheetUrl = u; }).catch(function(){});
 };
 
 // ============================================================
@@ -1283,14 +1283,25 @@ function toast(msg, type) {
   toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 3200);
 }
 
-function openSheet() {
-  if (!sheetUrl) {
-    toast('⏳ Loading URL…', 'info');
-    jsonpCall('getSheetUrl').then(function(u){ sheetUrl = u; window.open(u,'_blank'); })
-      .catch(function(){ toast('❌ Could not get sheet link', 'err'); });
-    return;
-  }
-  window.open(sheetUrl, '_blank');
+// Downloads the current inventory as a .csv file straight to this device.
+// This goes through the public Apps Script Web App endpoint, so it works
+// the same way on every phone — no Google login and no "request access"
+// prompt, because nobody needs direct permission on the Google Sheet itself.
+function exportSheet() {
+  toast('⏳ Exporting…', 'info');
+  jsonpCall('exportCsv').then(function(r) {
+    if (!r || !r.success) { toast('❌ ' + (r && r.error || 'Export failed'), 'err'); return; }
+    var blob = new Blob([r.csv], { type: 'text/csv;charset=utf-8;' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url;
+    a.download = r.filename || 'inventory.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    toast('✅ Exported: ' + a.download, 'suc');
+  }).catch(function(){ toast('❌ Export failed', 'err'); });
 }
 </script>
 </body>
