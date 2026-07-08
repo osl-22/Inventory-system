@@ -1291,11 +1291,15 @@ function exportSheet() {
   toast('⏳ Exporting…', 'info');
   jsonpCall('exportCsv').then(function(r) {
     if (!r || !r.success) { toast('❌ ' + (r && r.error || 'Export failed'), 'err'); return; }
-    var blob = new Blob([r.csv], { type: 'text/csv;charset=utf-8;' });
+    var byteChars = atob(r.base64);
+    var byteNumbers = new Array(byteChars.length);
+    for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+    var byteArray = new Uint8Array(byteNumbers);
+    var blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     var url  = URL.createObjectURL(blob);
     var a    = document.createElement('a');
     a.href = url;
-    a.download = r.filename || 'inventory.csv';
+    a.download = r.filename || 'inventory.xlsx';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
