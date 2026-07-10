@@ -1295,11 +1295,11 @@ function exportSheet() {
     var byteNumbers = new Array(byteChars.length);
     for (var i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
     var byteArray = new Uint8Array(byteNumbers);
-    var blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var blob = new Blob([byteArray], { type: 'text/csv;charset=utf-8' });
     var url  = URL.createObjectURL(blob);
     var a    = document.createElement('a');
     a.href = url;
-    a.download = r.filename || 'inventory.xlsx';
+    a.download = r.filename || 'inventory.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
