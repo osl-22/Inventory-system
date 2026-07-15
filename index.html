@@ -348,7 +348,7 @@ select.fc {
         <input type="text" class="fc" id="aN" placeholder="e.g. Safety Helmet">
       </div>
       <div class="fg">
-        <label class="fl">Barcode / SKU</label>
+        <label class="fl">Barcode</label>
         <div style="display:flex;gap:8px">
           <input type="text" class="fc" id="aBc" placeholder="Scan or type barcode (supports 0001)" inputmode="text" autocomplete="off">
           <button class="btn btn-o btn-sm" onclick="toggleInlineScan()" style="flex-shrink:0">📷</button>
@@ -413,14 +413,6 @@ select.fc {
         <button class="btn btn-p" id="camStartBtn" onclick="startMainScan()">📷 Live Camera</button>
         <button class="btn btn-o" id="camStopBtn" onclick="stopMainScan()" style="display:none">⏹ Stop</button>
       </div>
-      <div style="margin-bottom:10px">
-        <button class="btn btn-s" onclick="document.getElementById('camPhotoInput').click()">📸 Take Photo to Scan</button>
-        <input type="file" id="camPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handleMainPhotoCapture(event)">
-        <p style="color:var(--muted);font-size:11px;text-align:center;margin-top:6px">
-          If Live Camera doesn't work (common inside Google Apps Script's web app frame), use this — it opens your phone's real camera app.
-        </p>
-      </div>
-
       <div id="qr-reader"></div>
       <div id="qr-file-reader" style="display:none"></div>
 
@@ -433,9 +425,6 @@ select.fc {
         </div>
       </div>
 
-      <p style="color:var(--muted);font-size:11px;text-align:center;margin:8px 0 4px">
-        Hold steady · Works with all barcodes &amp; QR codes
-      </p>
       <div class="mbar">
         <input type="text" class="fc" id="manBc" placeholder="Or type barcode manually… (supports 0001)" inputmode="text" autocomplete="off">
         <button class="btn btn-p btn-sm" onclick="manualLookup()">Go</button>
@@ -534,11 +523,11 @@ select.fc {
     <input type="hidden" id="eId">
     <div class="fg"><label class="fl">Item Name</label>
       <input type="text" class="fc" id="eName"></div>
-    <div class="fg"><label class="fl">Barcode / SKU</label>
+    <div class="fg"><label class="fl">Barcode</label>
       <input type="text" class="fc" id="eBc" inputmode="text" autocomplete="off"></div>
     <div class="fg"><label class="fl">Location</label>
       <input type="text" class="fc" id="eLoc"></div>
-    <div class="fg"><label class="fl">Quantity (set directly)</label>
+    <div class="fg"><label class="fl">Quantity</label>
       <input type="number" class="fc" id="eQty" min="0"></div>
     <div class="fg"><label class="fl">Unit</label>
       <select class="fc" id="eUnit">
@@ -1004,19 +993,6 @@ function scanImageFile(file, onResult, onError) {
   scanner.scanFile(file, false)
     .then(function(decoded){ onResult(decoded); scanner.clear(); })
     .catch(function(err){ onError(err); try { scanner.clear(); } catch(e){} });
-}
-
-function handleMainPhotoCapture(e) {
-  var file = e.target.files && e.target.files[0];
-  e.target.value = ''; // allow re-selecting the same photo later
-  if (!file) return;
-  toast('🔍 Reading barcode from photo…', 'info');
-  scanImageFile(file, function(decoded){
-    document.getElementById('manBc').value = decoded;
-    lookupBc(decoded);
-  }, function(){
-    toast('❌ Could not read a barcode in that photo — try again with better light/focus, or type it manually', 'err');
-  });
 }
 
 function handleInlinePhotoCapture(e) {
