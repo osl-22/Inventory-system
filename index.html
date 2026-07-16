@@ -115,7 +115,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   min-width: 52px; text-align: center; flex-shrink: 0;
   line-height: 1.3;
 }
-.qb-unit { font-size: 9px; font-weight: 400; opacity: .85; }
 .qb.zero { background: #9aa0a6; }
 
 /* ===== SEARCH BAR ===== */
@@ -321,6 +320,7 @@ select.fc {
         <input type="text" id="searchQ" placeholder="Search name or barcode…"
                oninput="filterInv(this.value)">
         <span id="clearBtn" style="cursor:pointer;display:none;color:var(--muted)" onclick="clearSearch()">✕</span>
+        <button class="hbtn" style="color:var(--muted);padding:4px 8px;font-size:16px" onclick="openLookupScan('inv')" title="Scan to search">📷</button>
       </div>
     </div>
     <div class="stats" id="statsBar">
@@ -352,10 +352,7 @@ select.fc {
         <div style="display:flex;gap:8px">
           <input type="text" class="fc" id="aBc" placeholder="Scan or type barcode (supports 0001)" inputmode="text" autocomplete="off">
           <button class="btn btn-o btn-sm" onclick="toggleInlineScan()" style="flex-shrink:0">📷</button>
-          <button class="btn btn-o btn-sm" onclick="document.getElementById('addPhotoInput').click()" style="flex-shrink:0">📸</button>
-          <input type="file" id="addPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handleInlinePhotoCapture(event)">
         </div>
-        <p style="color:var(--muted);font-size:10px;margin-top:5px">📷 = live camera · 📸 = take a photo instead (works even if live camera is blocked)</p>
       </div>
       <div class="fg">
         <label class="fl">Location</label>
@@ -364,21 +361,6 @@ select.fc {
       <div class="fg">
         <label class="fl">Quantity to Add *</label>
         <input type="number" class="fc" id="aQty" min="0" value="1">
-      </div>
-      <div class="fg">
-        <label class="fl">Unit</label>
-        <select class="fc" id="aUnit">
-          <option value="pcs">pcs</option>
-          <option value="boxes">boxes</option>
-          <option value="sets">sets</option>
-          <option value="kg">kg</option>
-          <option value="L">L</option>
-          <option value="m">m</option>
-          <option value="rolls">rolls</option>
-          <option value="pairs">pairs</option>
-          <option value="bottles">bottles</option>
-          <option value="units">units</option>
-        </select>
       </div>
 
       <!-- Inline barcode scanner for Add form -->
@@ -400,7 +382,6 @@ select.fc {
     <div class="tab-bar">
       <button class="tbtn active" id="stBorrow" onclick="setScanMode('borrow')">📤 Borrow</button>
       <button class="tbtn" id="stReturn"   onclick="setScanMode('return')">📥 Return</button>
-      <button class="tbtn" id="stSearch"   onclick="setScanMode('search')">🔍 Lookup</button>
     </div>
 
     <div class="card">
@@ -414,7 +395,6 @@ select.fc {
         <button class="btn btn-o" id="camStopBtn" onclick="stopMainScan()" style="display:none">⏹ Stop</button>
       </div>
       <div id="qr-reader"></div>
-      <div id="qr-file-reader" style="display:none"></div>
 
       <div id="cam-err" style="display:none">
         <div class="cam-unavail">
@@ -459,13 +439,6 @@ select.fc {
         </div>
       </div>
 
-      <!-- Search-only view -->
-      <div id="srSearchOnly" style="display:none;text-align:center;padding:8px 0">
-        <p style="color:var(--muted);font-size:13px;margin-bottom:12px">
-          Item found ✓  Switch to Borrow or Return to process it.
-        </p>
-        <button class="btn btn-o btn-sm" onclick="closeSr()">Close</button>
-      </div>
     </div>
 
   </div>
@@ -481,6 +454,7 @@ select.fc {
         <span class="sicon">🔍</span>
         <input type="text" id="txnQ" placeholder="Search name or barcode…"
                oninput="filterTxns()">
+        <button class="hbtn" style="color:var(--muted);padding:4px 8px;font-size:16px" onclick="openLookupScan('txn')" title="Scan to search">📷</button>
         <button class="hbtn" style="color:var(--muted);padding:4px 8px;font-size:16px"
                 onclick="loadTxns()">🔄</button>
       </div>
@@ -529,22 +503,35 @@ select.fc {
       <input type="text" class="fc" id="eLoc"></div>
     <div class="fg"><label class="fl">Quantity</label>
       <input type="number" class="fc" id="eQty" min="0"></div>
-    <div class="fg"><label class="fl">Unit</label>
-      <select class="fc" id="eUnit">
-        <option value="pcs">pcs</option>
-        <option value="boxes">boxes</option>
-        <option value="sets">sets</option>
-        <option value="kg">kg</option>
-        <option value="L">L</option>
-        <option value="m">m</option>
-        <option value="rolls">rolls</option>
-        <option value="pairs">pairs</option>
-        <option value="bottles">bottles</option>
-        <option value="units">units</option>
-      </select></div>
     <div class="brow">
       <button class="btn btn-d btn-sm" onclick="doDelete()" style="flex:0 0 auto">🗑️ Delete</button>
       <button class="btn btn-p" onclick="doEdit()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==============================
+     LOOKUP SCAN MODAL (search-by-camera, used by Inventory & History)
+     ============================== -->
+<div class="moverlay" id="lookupScanModal" onclick="closeLookupScanBg(event)">
+  <div class="modal">
+    <div class="mtitle">🔍 Scan to Search
+      <button class="mclose" onclick="closeLookupScan()">✕</button>
+    </div>
+
+    <div id="lookupCamControls" style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn btn-p" id="lookupCamStartBtn" onclick="startLookupScan()">📷 Live Camera</button>
+      <button class="btn btn-o" id="lookupCamStopBtn" onclick="stopLookupScan()" style="display:none">⏹ Stop</button>
+    </div>
+    <div id="lookup-qr-reader"></div>
+
+    <div id="lookup-cam-err" style="display:none">
+      <div class="cam-unavail">
+        <div style="font-size:36px;margin-bottom:8px">📷</div>
+        <div style="font-size:13px">Camera not available</div>
+        <div style="font-size:11px;margin-top:4px" id="lookupCamErrHint">Close this and use the search box instead</div>
+        <button class="btn btn-o btn-sm" style="margin-top:12px" onclick="startLookupScan()">🔄 Retry</button>
+      </div>
     </div>
   </div>
 </div>
@@ -777,7 +764,7 @@ function renderInv() {
       (item.location ? '📍 ' + h(item.location) : '') +
       '</div></div>' +
       '<div class="qb ' + cls + '">' + item.quantity +
-        '<div class="qb-unit">' + h(item.unit) + '</div></div>' +
+        '</div>' +
       '</div></div>';
   }).join('');
 }
@@ -811,18 +798,17 @@ function submitAdd() {
   var bc    = (document.getElementById('aBc').value || '').trim();
   var loc   = (document.getElementById('aLoc').value || '').trim();
   var qty   = document.getElementById('aQty').value;
-  var unit  = document.getElementById('aUnit').value;
 
   if (!name)              { toast('❌ Item name is required', 'err');  return; }
   if (!qty || isNaN(qty)) { toast('❌ Enter a valid quantity', 'err'); return; }
 
   toast('⏳ Saving…', 'info');
 
-  jsonpCall('addOrUpdateItem', { data: { name:name, barcode:bc, location:loc, quantity:qty, unit:unit } })
+  jsonpCall('addOrUpdateItem', { data: { name:name, barcode:bc, location:loc, quantity:qty } })
     .then(function(r){
       if (r && r.success) {
         if (r.action === 'updated') {
-          toast('✅ Updated "' + r.name + '": ' + r.previousQty + ' → ' + r.newQty + ' ' + unit, 'suc');
+          toast('✅ Updated "' + r.name + '": ' + r.previousQty + ' → ' + r.newQty, 'suc');
         } else {
           toast('✅ Added: ' + r.name, 'suc');
         }
@@ -848,7 +834,6 @@ function openEdit(id) {
   document.getElementById('eBc').value   = item.barcode;
   document.getElementById('eLoc').value  = item.location;
   document.getElementById('eQty').value  = item.quantity;
-  document.getElementById('eUnit').value = item.unit;
   document.getElementById('editModal').classList.add('show');
 }
 
@@ -861,8 +846,7 @@ function doEdit() {
     name: (document.getElementById('eName').value || '').trim(),
     barcode: (document.getElementById('eBc').value || '').trim(),
     location: (document.getElementById('eLoc').value || '').trim(),
-    quantity: document.getElementById('eQty').value,
-    unit: document.getElementById('eUnit').value
+    quantity: document.getElementById('eQty').value
   };
   if (!d.name) { toast('❌ Name required', 'err'); return; }
   toast('⏳ Saving…', 'info');
@@ -977,35 +961,116 @@ function camErrorHint(err) {
 }
 
 // ============================================================
-// PHOTO-CAPTURE FALLBACK
-// Uses the native camera app via <input type=file capture>,
-// then decodes the barcode from the still image with
-// Html5Qrcode.scanFile(). This bypasses getUserMedia entirely,
-// so it works even when Google Apps Script's wrapping iframe
-// blocks live camera streams.
+// LOOKUP SCAN (search-by-camera) — used by Inventory & History search bars
 // ============================================================
-function scanImageFile(file, onResult, onError) {
-  if (typeof Html5Qrcode === 'undefined') { onError('Library not loaded'); return; }
-  var scanner = new Html5Qrcode('qr-file-reader', {
+var lookupScanner     = null;
+var lookupScanActive  = false;
+var lookupScanContext = null; // 'inv' or 'txn'
+
+function openLookupScan(context) {
+  lookupScanContext = context;
+  document.getElementById('lookupScanModal').classList.add('show');
+  setTimeout(startLookupScan, 200);
+}
+
+function closeLookupScan() {
+  stopLookupScan();
+  document.getElementById('lookupScanModal').classList.remove('show');
+}
+
+function closeLookupScanBg(e) {
+  if (e.target === document.getElementById('lookupScanModal')) closeLookupScan();
+}
+
+function startLookupScan() {
+  if (lookupScanActive) return;
+
+  var reader = document.getElementById('lookup-qr-reader');
+  reader.style.display = 'block';
+  document.getElementById('lookup-cam-err').style.display = 'none';
+
+  if (typeof Html5Qrcode === 'undefined') {
+    showLookupCamError('Library not loaded, please check your network and retry');
+    return;
+  }
+
+  lookupScanner = new Html5Qrcode('lookup-qr-reader', {
     formatsToSupport: getSupportedFormats(),
     verbose: false
   });
-  scanner.scanFile(file, false)
-    .then(function(decoded){ onResult(decoded); scanner.clear(); })
-    .catch(function(err){ onError(err); try { scanner.clear(); } catch(e){} });
+
+  var config = {
+    fps: 10,
+    qrbox: scanBoxConfig,
+    aspectRatio: 1.7777778,
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+  };
+
+  // 1) Try rear camera via facingMode (works on most phones)
+  lookupScanner.start({ facingMode: { exact: 'environment' } }, config, onLookupScan, function(){})
+    .then(onLookupScanStarted)
+    .catch(function(){
+      // 2) Relax the constraint (exact -> preferred)
+      lookupScanner.start({ facingMode: 'environment' }, config, onLookupScan, function(){})
+        .then(onLookupScanStarted)
+        .catch(function(){
+          // 3) Enumerate cameras and pick the last one (usually the rear camera)
+          Html5Qrcode.getCameras().then(function(cams){
+            if (cams && cams.length) {
+              var camId = cams[cams.length - 1].id;
+              lookupScanner.start(camId, config, onLookupScan, function(){})
+                .then(onLookupScanStarted)
+                .catch(function(e){ showLookupCamError(e); });
+            } else {
+              showLookupCamError('No camera detected');
+            }
+          }).catch(function(e){ showLookupCamError(e); });
+        });
+    });
 }
 
-function handleInlinePhotoCapture(e) {
-  var file = e.target.files && e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  toast('🔍 Reading barcode from photo…', 'info');
-  scanImageFile(file, function(decoded){
-    document.getElementById('aBc').value = decoded;
-    toast('✅ Barcode scanned: ' + decoded, 'suc');
-  }, function(){
-    toast('❌ Could not read a barcode in that photo — try again or type it manually', 'err');
-  });
+function onLookupScanStarted() {
+  lookupScanActive = true;
+  document.getElementById('lookupCamStartBtn').style.display = 'none';
+  document.getElementById('lookupCamStopBtn').style.display  = 'flex';
+  document.getElementById('lookup-cam-err').style.display     = 'none';
+}
+
+function stopLookupScan() {
+  document.getElementById('lookupCamStartBtn').style.display = 'flex';
+  document.getElementById('lookupCamStopBtn').style.display  = 'none';
+  if (lookupScanner && lookupScanActive) {
+    lookupScanner.stop().then(function(){
+      if (lookupScanner) { lookupScanner.clear(); }
+    }).catch(function(){});
+  }
+  lookupScanActive = false;
+  lookupScanner    = null;
+}
+
+function showLookupCamError(err) {
+  lookupScanActive = false;
+  document.getElementById('lookup-qr-reader').style.display = 'none';
+  document.getElementById('lookupCamStartBtn').style.display = 'flex';
+  document.getElementById('lookupCamStopBtn').style.display  = 'none';
+  document.getElementById('lookup-cam-err').style.display     = 'block';
+  document.getElementById('lookupCamErrHint').textContent    = camErrorHint(err);
+  showIabBannerIfNeeded();
+}
+
+function onLookupScan(bc) {
+  bc = String(bc || '').trim();
+  if (!bc) return;
+  stopLookupScan();
+  document.getElementById('lookupScanModal').classList.remove('show');
+  if (lookupScanContext === 'inv') {
+    document.getElementById('searchQ').value = bc;
+    filterInv(bc);
+  } else if (lookupScanContext === 'txn') {
+    document.getElementById('txnQ').value = bc;
+    filterTxns();
+  }
+  toast('✅ Scanned: ' + bc, 'suc');
 }
 
 function onScan(bc) {
@@ -1040,24 +1105,17 @@ function showSr(item) {
   document.getElementById('srName').textContent   = item.name;
   document.getElementById('srBc').textContent     = item.barcode ? '🏷️ ' + item.barcode : '';
   document.getElementById('srLoc').textContent    = item.location ? '📍 ' + item.location : '';
-  document.getElementById('srQtyLbl').textContent = item.quantity + ' ' + item.unit;
+  document.getElementById('srQtyLbl').textContent = item.quantity;
   document.getElementById('srQty').value          = 1;
   document.getElementById('srQty').max            = scanMode === 'borrow' ? item.quantity : 99999;
 
-  if (scanMode === 'search') {
-    document.getElementById('srForm').style.display       = 'none';
-    document.getElementById('srSearchOnly').style.display = 'block';
+  var btn = document.getElementById('srBtn');
+  if (scanMode === 'borrow') {
+    btn.textContent = '📤 Confirm Borrow';
+    btn.className   = 'btn btn-d';
   } else {
-    document.getElementById('srForm').style.display       = 'block';
-    document.getElementById('srSearchOnly').style.display = 'none';
-    var btn = document.getElementById('srBtn');
-    if (scanMode === 'borrow') {
-      btn.textContent = '📤 Confirm Borrow';
-      btn.className   = 'btn btn-d';
-    } else {
-      btn.textContent = '📥 Confirm Return';
-      btn.className   = 'btn btn-s';
-    }
+    btn.textContent = '📥 Confirm Return';
+    btn.className   = 'btn btn-s';
   }
 
   var card = document.getElementById('srCard');
@@ -1098,14 +1156,13 @@ function confirmTxn() {
 
 function setScanMode(mode) {
   scanMode = mode;
-  ['borrow','return','search'].forEach(function(m){
+  ['borrow','return'].forEach(function(m){
     var id = 'st' + m.charAt(0).toUpperCase() + m.slice(1);
     document.getElementById(id).classList.toggle('active', m === mode);
   });
   var lbl = {
     borrow: '📤 Point camera at barcode to borrow items',
-    return: '📥 Point camera at barcode to return items',
-    search: '🔍 Point camera at barcode to look up item info'
+    return: '📥 Point camera at barcode to return items'
   };
   document.getElementById('scanLbl').textContent = lbl[mode];
   closeSr();
